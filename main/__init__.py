@@ -32,6 +32,10 @@ def create_app(test_config=None):
     @app.route('/hello')
     def hello():
         return 'Ola, mundo do Batman!'
+    
+    from . import db  # Importa o módulo db para inicializar o banco de dados
+    db.init_app(app)  # Inicializa o banco de dados com a aplicação
+
 
     return app
 

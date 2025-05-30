@@ -36,6 +36,8 @@ def create_app(test_config=None):
     from . import db  # Importa o módulo db para inicializar o banco de dados
     db.init_app(app)  # Inicializa o banco de dados com a aplicação
 
+    from . import auth  # Importa o módulo de autenticação
+    app.register_blueprint(auth.bp)  # Registra o Blueprint de autenticação
 
     return app
 

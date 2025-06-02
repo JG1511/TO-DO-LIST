@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>Editar Lista</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post">
+    <label for="nome">Nome da Lista</label>
+    <input name="nome" id="nome" value="{{ lista['nome'] }}" required>
+    <button type="submit" class="btn btn-primary">Salvar</button>
+  </form>
+{% endblock %}

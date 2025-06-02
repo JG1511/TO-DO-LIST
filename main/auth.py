@@ -78,17 +78,16 @@ def load_logged_in_user():
             'SELECT * FROM USUARIOS WHERE Id_Usuario = ?', (user_id,)
         ).fetchone()  # Caso contrário, busca o usuário no banco de dados usando o ID armazenado na sessão.
 
-bp.route('/logout') # Define a rota para o logout do usuário.
+@bp.route('/logout') # Define a rota para o logout do usuário.
 def logout():
-    """Realiza o logout do usuário, limpando a sessão."""
     session.clear()  # Limpa todos os dados da sessão, efetivamente desconectando o usuário.
-    return redirect(url_for('index'))  # Redireciona para a página inicial após o logout.
+    return redirect(url_for('auth.login'))  # Redireciona para a página inicial após o logout.
 
 def login_required(view): # O decorator login_required pode ser aplicado a qualquer rota que exija autenticação, garantindo que apenas usuários autenticados possam acessá-la.
     """Decorator para exigir que o usuário esteja autenticado para acessar uma rota."""
     @functools.wraps(view)  # Preserva as informações da função original, como nome e docstring.
     def wrapped_view(**kwargs): # Função interna que verifica se o usuário está autenticado antes de chamar a função original.
-        if g.user is None:  # Verifica se o usuário está autenticado.
+        if g.user is None:  # Verifica se o usuário está autenticado.au
             return redirect(url_for('auth.login'))  # Se não estiver autenticado, redireciona para a página de login.
         return view(**kwargs)  # Se estiver autenticado, chama a função original.
 

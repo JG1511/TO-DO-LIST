@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>Minhas Listas de Tarefas</h1>
+  <a class="btn btn-primary" href="{{ url_for('list.criar_lista') }}">Nova Lista</a>
+{% endblock %}
+
+{% block content %}
+  {% for lista in lista_de_tarefas %}
+    <article>
+      <h2>{{ lista['nome'] }}</h2>
+      <p>Criada por: {{ lista['nome_usuario'] }}</p>
+      <a class="btn btn-success" href="{{ url_for('list.tarefas', id_lista=lista['Id_Lista']) }}">Ver Tarefas</a>
+      <a class="btn btn-warning" href="{{ url_for('list.editar_lista', id_lista=lista['Id_Lista']) }}">Editar</a>
+      <form method="post" action="{{ url_for('list.excluir_lista', id_lista=lista['Id_Lista']) }}" style="display:inline;">
+        <button class="btn btn-danger" type="submit" onclick="return confirm('Tem certeza que deseja excluir esta lista?')">Excluir</button>
+      </form>
+    </article>
+    {% if not loop.last %}<hr>{% endif %}
+  {% endfor %}
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>Tarefas da Lista</h1>
+  <a class="btn btn-primary" href="{{ url_for('list.criar_tarefa', id_lista=request.view_args['id_lista']) }}">Nova Tarefa</a>
+{% endblock %}
+
+{% block content %}
+  {% for tarefa in tarefas %}
+    <article>
+      <h2>{{ tarefa['nome'] }}</h2>
+      <p>{{ tarefa['descricao'] }}</p>
+      <p>
+        {% if tarefa['concluida'] %}
+          <span class="badge bg-success">Concluída</span>
+        {% else %}
+          <span class="badge bg-warning">Pendente</span>
+        {% endif %}
+        {% if tarefa['data_conclusao'] %}
+          | Concluída em: {{ tarefa['data_conclusao'] }}
+        {% endif %}
+      </p>
+      <a class="btn btn-warning" href="{{ url_for('list.editar_tarefa', id_lista=tarefa['Id_lista'], id_tarefa=tarefa['id_tarefa']) }}">Editar</a>
+      <form method="post" action="{{ url_for('list.excluir_tarefa', id_lista=tarefa['Id_lista'], id_tarefa=tarefa['id_tarefa']) }}" style="display:inline;">
+        <button class="btn btn-danger" type="submit" onclick="return confirm('Tem certeza que deseja excluir esta tarefa?')">Excluir</button>
+      </form>
+    </article>
+    {% if not loop.last %}<hr>{% endif %}
+  {% endfor %}
+{% endblock %}

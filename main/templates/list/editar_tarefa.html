@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1>Editar Tarefa</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post">
+    <label for="nome">Nome da Tarefa</label>
+    <input name="nome" id="nome" value="{{ tarefa['nome'] }}" required>
+    <label for="descricao">Descrição</label>
+    <input name="descricao" id="descricao" value="{{ tarefa['descricao'] }}" required>
+    <label>
+      <input type="checkbox" name="concluida" {% if tarefa['concluida'] %}checked{% endif %}> Concluída
+    </label>
+    <label for="data_conclusao">Data de Conclusão</label>
+    <input type="date" name="data_conclusao" id="data_conclusao" value="{{ tarefa['data_conclusao'] }}">
+    <button type="submit" class="btn btn-primary">Salvar</button>
+  </form>
+{% endblock %}

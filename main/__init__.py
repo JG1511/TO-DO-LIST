@@ -38,6 +38,10 @@ def create_app(test_config=None):
 
     from . import auth  # Importa o módulo de autenticação
     app.register_blueprint(auth.bp)  # Registra o Blueprint de autenticação
+    
+    from . import list  # Importa o módulo de listas
+    app.register_blueprint(list.bp)  # Registra o Blueprint de listas
+    app.add_url_rule('/',endpoint='index')  # Define a rota raiz para o endpoint 'index'
 
     return app
 

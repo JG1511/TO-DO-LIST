@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1 class="mb-4">{% block title %}Login{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post" class="needs-validation" novalidate>
+    <div class="mb-3">
+      <label for="usuario" class="form-label">Usuário</label>
+      <input type="text" class="form-control" id="usuario" name="usuario" required>
+      <div class="invalid-feedback">
+        Por favor, informe o nome de usuário.
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="senha" class="form-label">Senha</label>
+      <input type="password" class="form-control" id="senha" name="senha" required>
+      <div class="invalid-feedback">
+        Por favor, informe a senha.
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Entrar</button>
+  </form>
+{% endblock %}

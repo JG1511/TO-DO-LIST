@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+
+{% block header %}
+  <h1 class="mb-4">{% block title %}Registro{% endblock %}</h1>
+{% endblock %}
+
+{% block content %}
+  <form method="post" class="needs-validation" novalidate>
+    <div class="mb-3">
+      <label for="usuario" class="form-label">Usuário</label>
+      <input type="text" class="form-control" id="usuario" name="usuario" required>
+      <div class="invalid-feedback">
+        Por favor, insira um nome de usuário.
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="email" class="form-label">Email</label>
+      <input type="email" class="form-control" id="email" name="email" required>
+      <div class="invalid-feedback">
+        Por favor, insira um email válido.
+      </div>
+    </div>
+
+    <div class="mb-3">
+      <label for="senha" class="form-label">Senha</label>
+      <input type="password" class="form-control" id="senha" name="senha" required>
+      <div class="invalid-feedback">
+        Por favor, insira uma senha.
+      </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Registrar</button>
+  </form>
+{% endblock %}

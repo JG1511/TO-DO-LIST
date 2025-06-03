@@ -40,6 +40,48 @@ def registro():
         flash(erro)
     return render_template('auth/registro.html')
 
+@bp.route('/usuarios') # Define a rota para listar todos os usuários registrados.
+def listar_usuarios():
+    db = get_db()
+    usuarios = db.execute(
+        'SELECT Id_Usuario, nome, email FROM USUARIOS ORDER BY Id_Usuario DESC' # Consulta SQL para obter todos os usuários, ordenados pelo ID do usuário em ordem decrescente.
+    ).fetchall()
+    return render_template('auth/usuarios.html', usuarios=usuarios) # Renderiza o template de listagem de usuários, passando a lista de usuários obtida do banco de dados.
+
+@bp.route('/<int:id_usuario>/editar', methods=('GET', 'POST')) # Define a rota para editar um usuário específico, onde id_usuario é um parâmetro inteiro que representa o ID do usuário.
+def editar_usuario(id_usuario):
+    usuario = get_user(id_usuario)  # Obtém o usuário pelo ID, garantindo que o usuário exista.
+    if request.method == 'POST':
+        nome = request.form['nome']
+        email = request.form['email']
+        senha = request.form['senha']
+        erro = None
+
+        if not nome:
+            erro = 'Nome é obrigatório.'
+        elif not email: 
+            erro = 'Email é obrigatório.'
+        elif not senha:
+            erro = 'Senha é obrigatória.'
+        if erro is None:
+            db = get_db()
+            db.execute(
+                'UPDATE USUARIOS SET nome = ?, email = ?, senha = ? WHERE Id_Usuario = ?',(nome, email, generate_password_hash(senha), id_usuario) # Atualiza os dados do usuário no banco de dados, incluindo a senha criptografada.
+            )
+            db.commit()
+            return redirect(url_for('auth.listar_usuarios')) # Redireciona para a lista de usuários após a edição bem-sucedida.
+        flash(erro)
+    return render_template('auth/editar_usuario.html', usuario=usuario)  # Renderiza o template de edição de usuário, passando o usuário obtido.
+
+@bp.route('/<int:id_usuario>/deletar', methods=('POST',)) # Define a rota para deletar um usuário específico, onde id_usuario é um parâmetro inteiro que representa o ID do usuário.
+def deletar_usuario(id_usuario):
+    db = get_db()
+    db.execute(
+        'DELETE FROM USUARIOS WHERE Id_Usuario = ?',(id_usuario,) # Executa uma consulta SQL para deletar o usuário do banco de dados com base no ID fornecido.
+    )
+    db.commit()
+    return redirect(url_for('auth.listar_usuarios'))  # Redireciona para a lista de usuários após a exclusão bem-sucedida.
+
 @bp.route('/login',methods=('GET', 'POST')) # Define a rota para o login de usuários
 def login():
     if request.method == 'POST':
@@ -92,3 +134,13 @@ def login_required(view): # O decorator login_required pode ser aplicado a qualq
         return view(**kwargs)  # Se estiver autenticado, chama a função original.
 
     return wrapped_view  # Retorna a função interna como o novo decorator, que pode ser aplicado a outras rotas.
+
+
+def get_user(id_usuario):
+    """Obtém um usuário pelo ID."""
+    user = get_db().execute(
+        'SELECT * FROM USUARIOS WHERE Id_Usuario = ?', (id_usuario,)
+    ).fetchone()  # Busca o usuário no banco de dados pelo ID fornecido.
+    if user is None:
+        abort(404, f'Usuário id {id_usuario} não encontrado.')  # Se o usuário não for encontrado, retorna um erro 404.
+    return user  # Retorna o usuário encontrado.

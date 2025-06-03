@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block header %}<h1>Usuários</h1>{% endblock %}
+{% block content %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Nome</th>
+        <th>Email</th>
+        <th>Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for usuario in usuarios %}
+      <tr>
+        <td>{{ usuario['nome'] }}</td>
+        <td>{{ usuario['email'] }}</td>
+        <td>
+          <a href="{{ url_for('auth.editar_usuario', id_usuario=usuario['Id_Usuario']) }}" class="btn btn-warning btn-sm">Editar</a>
+          <form method="post" action="{{ url_for('auth.deletar_usuario', id_usuario=usuario['Id_Usuario']) }}" style="display:inline;">
+            <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Tem certeza que deseja excluir?')">Excluir</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

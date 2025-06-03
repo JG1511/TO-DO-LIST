@@ -1,4 +1,4 @@
-import sqlite3
+import sqlite3, mysql.connector
 from datetime import datetime
 
 import click
@@ -15,6 +15,15 @@ def get_db():
         g.db.row_factory = sqlite3.Row  # Permite acessar colunas por nome
 
     return g.db
+
+# def get_db_connection():
+#     if 'db' not in g:  # Verifica se já existe uma conexão com o banco de dados no contexto global g
+#         g.db = mysql.connector.connect(
+#             host = 'localhost',  # Endereço do servidor MySQL
+#             user = 'seu_usuario',  # Nome de usuário do MySQL
+#             password = 'sua_senha',  # Senha do usuário do MySQL
+#             database = 'seu_banco_de_dados'  # Nome do banco de dados MySQL
+#         )
 
 def close_db(e=None):
     """Fecha a conexão com o banco de dados, se estiver aberta."""

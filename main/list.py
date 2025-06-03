@@ -108,20 +108,17 @@ def editar_tarefa(id_lista, id_tarefa):
     tarefa = get_tarefa(id_tarefa)
 
     if request.method == 'POST':
-        nome = request.form['nome']
         descricao = request.form['descricao']
         concluida = request.form.get('concluida') == 'on'
         data_conclusao = request.form.get('data_conclusao') or None
         erro = None
 
-        if not nome:
-            erro = 'O nome da tarefa é obrigatório.'
         if erro is None:
             db = get_db()
             db.execute(
-                '''UPDATE TAREFAS SET nome = ?, descricao = ?, concluida = ?, data_conclusao = ?
+                '''UPDATE TAREFAS SET descricao = ?, concluida = ?, data_conclusao = ?
                    WHERE id_tarefa = ?''',
-                (nome, descricao, concluida, data_conclusao, id_tarefa)
+                ( descricao, concluida, data_conclusao, id_tarefa)
             )
             db.commit()
             return redirect(url_for('list.tarefas', id_lista=id_lista))

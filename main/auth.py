@@ -6,7 +6,7 @@ from flask import (
 
 from werkzeug.security import check_password_hash, generate_password_hash # check_password_hash é usado para verificar se a senha fornecida corresponde à senha armazenada de forma segura, enquanto generate_password_hash é usado para criar uma versão criptografada da senha.
 
-from main.db import get_db # get_db é uma função que retorna a conexão com o banco de dados, permitindo acessar as tabelas e executar consultas SQL.
+from main.db import get_db, get_cursor # get_db é uma função que retorna a conexão com o banco de dados, permitindo acessar as tabelas e executar consultas SQL.
 bp = Blueprint('auth', __name__, url_prefix='/auth') # Define um Blueprint chamado 'auth' com o prefixo '/auth', permitindo organizar rotas relacionadas à autenticação.
 
 @bp.route('/registro', methods=('GET', 'POST')) # Define a rota para o registro de usuários, aceitando métodos GET e POST.
@@ -19,6 +19,8 @@ def registro():
         db = get_db()
         erro = None
 
+        cursor = get_cursor()  # Obtém um cursor para executar consultas SQL no banco de dados.
+
         if not usuario:
             erro = 'Usuário é obrigatório.'
         elif not email:
@@ -28,11 +30,17 @@ def registro():
 
         if erro is None:
             try:
-                db.execute( # Executa uma consulta SQL para inserir um novo usuário no banco de dados.
-                    'INSERT INTO USUARIOS (nome, email, senha) VALUES (?, ?, ?)',
-                    (usuario,email, generate_password_hash(senha)) # generate_password_hash é usado para criar uma versão criptografada da senha antes de armazená-la no banco de dados.
+                # db.execute( # Executa uma consulta SQL para inserir um novo usuário no banco de dados.
+                #     'INSERT INTO USUARIOS (nome, email, senha) VALUES (%s, %s, %s)',
+                #     (usuario,email, generate_password_hash(senha)) # generate_password_hash é usado para criar uma versão criptografada da senha antes de armazená-la no banco de dados.
+                # )
+
+                cursor.execute(
+                    'INSERT INTO USUARIOS (nome, email, senha) VALUES (%s, %s, %s)',
+                    (usuario, email, generate_password_hash(senha))
                 )
                 db.commit()
+
             except db.IntegrityError: # IntegrityError é uma exceção que ocorre quando há uma violação de integridade no banco de dados, como tentar inserir um valor duplicado em uma coluna com restrição de unicidade.
                 erro = f'Usuário {usuario} já existe.'
             else:
@@ -43,9 +51,14 @@ def registro():
 @bp.route('/usuarios') # Define a rota para listar todos os usuários registrados.
 def listar_usuarios():
     db = get_db()
-    usuarios = db.execute(
+    cursor = get_cursor()  # Obtém um cursor para executar consultas SQL no banco de dados.
+    # usuarios = db.execute(
+    #     'SELECT Id_Usuario, nome, email FROM USUARIOS ORDER BY Id_Usuario DESC' # Consulta SQL para obter todos os usuários, ordenados pelo ID do usuário em ordem decrescente.
+    # ).fetchall()
+    cursor.execute(
         'SELECT Id_Usuario, nome, email FROM USUARIOS ORDER BY Id_Usuario DESC' # Consulta SQL para obter todos os usuários, ordenados pelo ID do usuário em ordem decrescente.
-    ).fetchall()
+    )
+    usuarios = cursor.fetchall()  # fetchall() retorna todas as linhas do resultado da consulta SQL, que corresponde a todos os usuários registrados.
     return render_template('auth/usuarios.html', usuarios=usuarios) # Renderiza o template de listagem de usuários, passando a lista de usuários obtida do banco de dados.
 
 @bp.route('/<int:id_usuario>/editar', methods=('GET', 'POST')) # Define a rota para editar um usuário específico, onde id_usuario é um parâmetro inteiro que representa o ID do usuário.
@@ -57,6 +70,8 @@ def editar_usuario(id_usuario):
         senha = request.form['senha']
         erro = None
 
+        cursor = get_cursor()  # Obtém um cursor para executar consultas SQL no banco de dados.
+
         if not nome:
             erro = 'Nome é obrigatório.'
         elif not email: 
@@ -65,10 +80,15 @@ def editar_usuario(id_usuario):
             erro = 'Senha é obrigatória.'
         if erro is None:
             db = get_db()
-            db.execute(
-                'UPDATE USUARIOS SET nome = ?, email = ?, senha = ? WHERE Id_Usuario = ?',(nome, email, generate_password_hash(senha), id_usuario) # Atualiza os dados do usuário no banco de dados, incluindo a senha criptografada.
+            # db.execute(
+            #     'UPDATE USUARIOS SET nome = %s, email = %s, senha = %s WHERE Id_Usuario = %s',(nome, email, generate_password_hash(senha), id_usuario) # Atualiza os dados do usuário no banco de dados, incluindo a senha criptografada.
+            # )
+            cursor.execute(
+                'UPDATE USUARIOS SET nome = %s, email = %s, senha = %s WHERE Id_Usuario = %s',
+                (nome, email, generate_password_hash(senha), id_usuario) # Atualiza os dados do usuário no banco de dados, incluindo a senha criptografada.
             )
             db.commit()
+            
             return redirect(url_for('auth.listar_usuarios')) # Redireciona para a lista de usuários após a edição bem-sucedida.
         flash(erro)
     return render_template('auth/editar_usuario.html', usuario=usuario)  # Renderiza o template de edição de usuário, passando o usuário obtido.
@@ -77,7 +97,7 @@ def editar_usuario(id_usuario):
 def deletar_usuario(id_usuario):
     db = get_db()
     db.execute(
-        'DELETE FROM USUARIOS WHERE Id_Usuario = ?',(id_usuario,) # Executa uma consulta SQL para deletar o usuário do banco de dados com base no ID fornecido.
+        'DELETE FROM USUARIOS WHERE Id_Usuario = %s',(id_usuario,) # Executa uma consulta SQL para deletar o usuário do banco de dados com base no ID fornecido.
     )
     db.commit()
     return redirect(url_for('auth.listar_usuarios'))  # Redireciona para a lista de usuários após a exclusão bem-sucedida.
@@ -88,11 +108,17 @@ def login():
         usuario = request.form['usuario']
         senha = request.form['senha']
         db = get_db()
+        cursor = get_cursor()
         erro = None
-        usuario_db = db.execute(
-            'SELECT  Id_Usuario, nome, senha FROM USUARIOS WHERE nome = ?',
-            (usuario,)
-        ).fetchone() # fetchone() é usado para recuperar uma única linha do resultado da consulta SQL, que corresponde ao usuário fornecido. E o fatchall retorna todas as linhas do resultado da consulta SQL, que corresponde ao usuário fornecido.
+
+        cursor.execute(
+            'SELECT Id_Usuario, nome, senha FROM USUARIOS WHERE nome = %s', (usuario,) # Executa uma consulta SQL para buscar o usuário pelo nome fornecido.
+        )
+        usuario_db = cursor.fetchone()  # fetchone() é usado para recuperar uma única linha do resultado da consulta SQL, que corresponde ao usuário fornecido.
+        # usuario_db = db.execute(
+        #     'SELECT  Id_Usuario, nome, senha FROM USUARIOS WHERE nome = %s',
+        #     (usuario,)
+        # ).fetchone() # fetchone() é usado para recuperar uma única linha do resultado da consulta SQL, que corresponde ao usuário fornecido. E o fatchall retorna todas as linhas do resultado da consulta SQL, que corresponde ao usuário fornecido.
         if usuario_db is None:
             erro = 'Usuário não encontrado.'
         elif not check_password_hash(usuario_db['senha'], senha): # check_password_hash é usado para verificar se a senha fornecida corresponde à senha armazenada de forma segura.
@@ -112,14 +138,18 @@ def login():
 def load_logged_in_user(): 
     """Carrega o usuário autenticado na sessão."""
     user_id = session.get('Id_Usuario')
-
+    cursor = get_cursor() # Obtém um cursor para executar consultas SQL no banco de dados.
     if user_id is None:
         g.user = None # Se não houver ID de usuário na sessão, define g.user como None.
     else:
-        g.user = get_db().execute(
-            'SELECT * FROM USUARIOS WHERE Id_Usuario = ?', (user_id,)
-        ).fetchone()  # Caso contrário, busca o usuário no banco de dados usando o ID armazenado na sessão.
+        # g.user = get_db().execute(
+        #     'SELECT * FROM USUARIOS WHERE Id_Usuario = %s', (user_id,)
+        # ).fetchone()  # Caso contrário, busca o usuário no banco de dados usando o ID armazenado na sessão.
 
+        cursor.execute(
+            'SELECT * FROM USUARIOS WHERE Id_Usuario = %s', (user_id,) # Executa uma consulta SQL para obter os dados do usuário autenticado.
+        )
+        g.user = cursor.fetchone()  # Armazena o usuário encontrado no objeto global g, que persiste durante a requisição.
 @bp.route('/logout') # Define a rota para o logout do usuário.
 def logout():
     session.clear()  # Limpa todos os dados da sessão, efetivamente desconectando o usuário.
@@ -138,9 +168,14 @@ def login_required(view): # O decorator login_required pode ser aplicado a qualq
 
 def get_user(id_usuario):
     """Obtém um usuário pelo ID."""
-    user = get_db().execute(
-        'SELECT * FROM USUARIOS WHERE Id_Usuario = ?', (id_usuario,)
-    ).fetchone()  # Busca o usuário no banco de dados pelo ID fornecido.
+    cursor = get_cursor() 
+    # user = get_db().execute(
+    #     'SELECT * FROM USUARIOS WHERE Id_Usuario = %s', (id_usuario,)
+    # ).fetchone()  # Busca o usuário no banco de dados pelo ID fornecido.
+    cursor.execute(
+        'SELECT * FROM USUARIOS WHERE Id_Usuario = %s', (id_usuario,)  # Executa uma consulta SQL para obter os dados do usuário pelo ID fornecido.
+    )
+    user = cursor.fetchone()  # fetchone() retorna a primeira linha do resultado da consulta SQL, que corresponde ao usuário com o ID fornecido.
     if user is None:
         abort(404, f'Usuário id {id_usuario} não encontrado.')  # Se o usuário não for encontrado, retorna um erro 404.
     return user  # Retorna o usuário encontrado.

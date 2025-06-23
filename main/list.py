@@ -4,7 +4,7 @@ from flask import (
 
 from werkzeug.exceptions import abort # abort é uma função que gera uma exceção HTTP, interrompendo o processamento da requisição e retornando um código de status HTTP específico.
 
-from main.db import get_db 
+from main.db import get_db , get_cursor
 from main.auth import login_required 
 
 bp = Blueprint('list',__name__)
@@ -12,20 +12,33 @@ bp = Blueprint('list',__name__)
 @bp.route('/')
 def index():
     db = get_db()
-    lista_de_tarefas = db.execute(
-        'SELECT * FROM LISTAS_DE_TAREFAS JOIN USUARIOS ON LISTAS_DE_TAREFAS.Id_Usuario = USUARIOS.Id_Usuario ORDER BY Id_Lista DESC' # Consulta SQL para obter todas as listas de tarefas, juntando com a tabela de usuários para obter informações do usuário associado.
-    ).fetchall()
+    cursor = get_cursor()
+    # lista_de_tarefas = db.execute(
+    #     'SELECT * FROM LISTAS_DE_TAREFAS INNER JOIN USUARIOS ON LISTAS_DE_TAREFAS.Id_Usuario = USUARIOS.Id_Usuario ORDER BY Id_Lista DESC' # Consulta SQL para obter todas as listas de tarefas, juntando com a tabela de usuários para obter informações do usuário associado.
+    # ).fetchall()
+
+    cursor.execute(
+         'SELECT * FROM LISTAS_DE_TAREFAS INNER JOIN USUARIOS ON LISTAS_DE_TAREFAS.Id_Usuario = USUARIOS.Id_Usuario ORDER BY Id_Lista DESC' # Consulta SQL para obter todas as listas de tarefas, juntando com a tabela de usuários para obter informações do usuário associado.
+    )
+    lista_de_tarefas = cursor.fetchall()  # Obtém todas as listas de tarefas do usuário autenticado.
     return render_template('list/index.html', lista_de_tarefas=lista_de_tarefas)
 
 @bp.route('/<int:id_lista>/tarefas') # Define a rota para exibir as tarefas de uma lista específica, onde id_lista é um parâmetro inteiro que representa o ID da lista de tarefas.
 @login_required
 def tarefas(id_lista):
     db = get_db()
-    tarefas = db.execute(
-        '''SELECT id_tarefa, descricao, concluida, data_criacao, data_conclusao, Id_lista
-           FROM TAREFAS WHERE Id_lista = ? ORDER BY id_tarefa DESC''',
+    cursor = get_cursor()
+    # tarefas = db.execute(
+    #     '''SELECT id_tarefa, descricao, concluida, data_criacao, data_conclusao, Id_lista
+    #        FROM TAREFAS WHERE Id_lista = %s ORDER BY id_tarefa DESC''',
+    #     (id_lista,)
+    # ).fetchall()
+    cursor.execute(
+         '''SELECT id_tarefa, descricao, concluida, data_criacao, data_conclusao, Id_lista
+           FROM TAREFAS WHERE Id_lista = %s ORDER BY id_tarefa DESC''',
         (id_lista,)
-    ).fetchall()
+    )
+    tarefas = cursor.fetchall()  # Obtém todas as tarefas da lista de tarefas especificada pelo ID.
     return render_template('list/tarefas.html', tarefas=tarefas)
 
 @bp.route('/criar_lista', methods=('GET', 'POST'))
@@ -34,13 +47,18 @@ def criar_lista():
     if request.method == 'POST':
         nome =  request.form['nome']
         db = get_db()
+        cursor = get_cursor()
         erro = None
         if not nome:
             erro = 'O nome da lista de tarefas é obrigatório.'
         if erro is None:
-            db.execute(
-                'INSERT INTO LISTAS_DE_TAREFAS (nome, Id_Usuario) VALUES (?, ?)',
-                (nome, g.user['Id_Usuario'])  # g.user é um dicionário que contém informações do usuário autenticado, como o ID do usuário.
+            # db.execute(
+            #     'INSERT INTO LISTAS_DE_TAREFAS (nome, Id_Usuario) VALUES (%s, %s)',
+            #     (nome, g.user['Id_Usuario'])  # g.user é um dicionário que contém informações do usuário autenticado, como o ID do usuário.
+            # )
+            cursor.execute(
+                 'INSERT INTO LISTAS_DE_TAREFAS (nome, Id_Usuario) VALUES (%s, %s)',
+            #     (nome, g.user['Id_Usuario'])  # g.user é um dicionário que contém informações do usuário autenticado, como o ID do usuário.
             )
             db.commit()
             return redirect(url_for('list.index'))
@@ -62,9 +80,14 @@ def editar_lista(id_lista):
             erro = 'O nome da lista de tarefas é obrigatório.'
         if erro is None:
             db = get_db()
-            db.execute(
-                'UPDATE LISTAS_DE_TAREFAS SET nome = ? WHERE Id_Lista = ?',
-                (nome, id_lista)
+            cursor = get_cursor()
+            # db.execute(
+            #     'UPDATE LISTAS_DE_TAREFAS SET nome = %s WHERE Id_Lista = %s',
+            #     (nome, id_lista)
+            # )
+            cursor.execute(
+                'UPDATE LISTAS_DE_TAREFAS SET nome = %s WHERE Id_Lista = %s',
+                 (nome, id_lista)
             )
             db.commit()
             return redirect(url_for('list.index')) # Redireciona para a página principal após a edição bem-sucedida.
@@ -75,8 +98,10 @@ def editar_lista(id_lista):
 @login_required
 def excluir_lista(id_lista):
     get_lista(id_lista)
-    db = get_db() 
-    db.execute('DELETE FROM LISTAS_DE_TAREFAS WHERE Id_Lista = ?', (id_lista,))  # Exclui a lista de tarefas pelo ID.
+    db = get_db()
+    cursor = get_cursor()
+    # db.execute('DELETE FROM LISTAS_DE_TAREFAS WHERE Id_Lista = %s', (id_lista,))  # Exclui a lista de tarefas pelo ID.
+    cursor.execute('DELETE FROM TAREFAS WHERE Id_lista = %s', (id_lista,))  # Exclui todas as tarefas associadas à lista de tarefas.
     db.commit()  # Confirma a exclusão no banco de dados.
     return redirect(url_for('list.index'))  # Redireciona para a página principal após a exclusão bem-sucedida.
 
@@ -88,14 +113,19 @@ def criar_tarefa(id_lista):
         concluida = request.form.get('concluida') == 'on'
         data_conclusao = request.form.get('data_conclusao') or None
         erro = None
+        cursor = get_cursor()
 
         if not descricao:
             erro = 'A descrição da tarefa é obrigatória.'
         if erro is None:
             db = get_db()
-            db.execute(
-                'INSERT INTO TAREFAS (descricao, concluida, data_conclusao, Id_lista) VALUES (?, ?, ?, ?)',
-                (descricao, concluida, data_conclusao, id_lista)
+            # db.execute(
+            #     'INSERT INTO TAREFAS (descricao, concluida, data_conclusao, Id_lista) VALUES (%s, %s, %s, %s)',
+            #     (descricao, concluida, data_conclusao, id_lista)
+            # )
+            cursor.execute(
+                 'INSERT INTO TAREFAS (descricao, concluida, data_conclusao, Id_lista) VALUES (%s, %s, %s, %s)',
+                    (descricao, concluida, data_conclusao, id_lista)
             )
             db.commit()
             return redirect(url_for('list.tarefas', id_lista=id_lista))
@@ -113,12 +143,19 @@ def editar_tarefa(id_lista, id_tarefa):
         data_conclusao = request.form.get('data_conclusao') or None
         erro = None
 
+        cursor = get_cursor()
+
         if erro is None:
             db = get_db()
-            db.execute(
-                '''UPDATE TAREFAS SET descricao = ?, concluida = ?, data_conclusao = ?
-                   WHERE id_tarefa = ?''',
-                ( descricao, concluida, data_conclusao, id_tarefa)
+            # db.execute(
+            #     '''UPDATE TAREFAS SET descricao = %s, concluida = %s, data_conclusao = %s
+            #        WHERE id_tarefa = %s''',
+            #     ( descricao, concluida, data_conclusao, id_tarefa)
+            # )
+            cursor.execute(
+                '''UPDATE TAREFAS SET descricao = %s, concluida = %s, data_conclusao = %s
+                    WHERE id_tarefa = %s''',
+                    ( descricao, concluida, data_conclusao, id_tarefa)
             )
             db.commit()
             return redirect(url_for('list.tarefas', id_lista=id_lista))
@@ -132,20 +169,34 @@ def editar_tarefa(id_lista, id_tarefa):
 def excluir_tarefa(id_lista, id_tarefa):
 
     get_tarefa(id_tarefa)
+    cursor = get_cursor()
     db = get_db()
-    db.execute('DELETE FROM TAREFAS WHERE id_tarefa = ?', (id_tarefa,))  # Exclui a tarefa pelo ID.
+    # db.execute('DELETE FROM TAREFAS WHERE id_tarefa = %s', (id_tarefa,))  # Exclui a tarefa pelo ID.
+    cursor.execute('DELETE FROM TAREFAS WHERE id_tarefa = %s', (id_tarefa,))  # Exclui a tarefa pelo ID.
     db.commit()  # Confirma a exclusão no banco de dados.
     return redirect(url_for('list.tarefas', id_lista=id_lista))  # Redireciona para a página de tarefas da lista após a exclusão bem-sucedida.
     
 
 def get_lista(id_lista, check_author=True):  # Obtém uma lista de tarefas específica pelo ID, com a opção de verificar se o usuário é o autor da lista.
-    lista = get_db().execute(
-        '''SELECT l.Id_Lista, l.nome, l.Id_Usuario, u.nome AS nome_usuario
-           FROM LISTAS_DE_TAREFAS l
-           JOIN USUARIOS u ON l.Id_Usuario = u.Id_Usuario
-           WHERE l.Id_Lista = ?''',
-        (id_lista,)
-    ).fetchone()
+    
+    cursor = get_cursor()
+
+    # lista = get_db().execute(
+    #     '''SELECT l.Id_Lista, l.nome, l.Id_Usuario, u.nome AS nome_usuario
+    #        FROM LISTAS_DE_TAREFAS l
+    #        INNER JOIN USUARIOS u ON l.Id_Usuario = u.Id_Usuario
+    #        WHERE l.Id_Lista = %s''',
+    #     (id_lista,)
+    # ).fetchone()
+
+    cursor.execute(
+          '''SELECT l.Id_Lista, l.nome, l.Id_Usuario, u.nome AS nome_usuario
+            FROM LISTAS_DE_TAREFAS l
+           INNER JOIN USUARIOS u ON l.Id_Usuario = u.Id_Usuario
+           WHERE l.Id_Lista = %s''',
+           (id_lista,)
+    ) 
+    lista = cursor.fetchone()  # Obtém a lista de tarefas pelo ID, juntando com a tabela de usuários para obter informações do usuário associado.
 
     if lista is None:
         abort(404, f"Lista id {id_lista} não existe.")
@@ -157,13 +208,23 @@ def get_lista(id_lista, check_author=True):  # Obtém uma lista de tarefas espec
 
 # verifica se a tarefa existe e se o usuário é o autor da tarefa, caso contrário, retorna um erro 404 ou 403.
 def get_tarefa(id_tarefa, check_author=True):
-    tarefa = get_db().execute(
+    cursor = get_cursor()
+    # tarefa = get_db().execute(
+    #     '''SELECT t.id_tarefa, t.descricao, t.concluida, t.data_criacao, t.data_conclusao, t.Id_lista, l.Id_Usuario
+    #        FROM TAREFAS t
+    #        INNER JOIN LISTAS_DE_TAREFAS l ON t.Id_lista = l.Id_lista
+    #        WHERE t.id_tarefa = %s''',
+    #     (id_tarefa,)
+    # ).fetchone()
+
+    cursor.execute(
         '''SELECT t.id_tarefa, t.descricao, t.concluida, t.data_criacao, t.data_conclusao, t.Id_lista, l.Id_Usuario
            FROM TAREFAS t
-           JOIN LISTAS_DE_TAREFAS l ON t.Id_lista = l.Id_lista
-           WHERE t.id_tarefa = ?''',
+           INNER JOIN LISTAS_DE_TAREFAS l ON t.Id_lista = l.Id_lista
+           WHERE t.id_tarefa = %s''',
         (id_tarefa,)
-    ).fetchone()
+    )
+    tarefa = cursor.fetchone()  # Obtém a tarefa pelo ID, juntando com a tabela de listas de tarefas para obter informações da lista associada.
 
     if tarefa is None:
         abort(404, f"Tarefa id {id_tarefa} não existe.")

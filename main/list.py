@@ -176,9 +176,36 @@ def excluir_tarefa(id_lista, id_tarefa):
     db.commit()  # Confirma a exclusão no banco de dados.
     return redirect(url_for('list.tarefas', id_lista=id_lista))  # Redireciona para a página de tarefas da lista após a exclusão bem-sucedida.
     
+@bp.route('/tarefa-concluida')
+@login_required
+def tarefa_concluida():
+    cursor = get_cursor()
+    cursor.execute("SELECT * FROM tarefas_concluidas_view WHERE Id_Usuario = %s", (g.user['Id_Usuario'],))
+    tarefas_concluidas = cursor.fetchall()  # Obtém todas as tarefas concluídas do usuário autenticado.
+    return render_template('list/tarefa_concluida.html', tarefas_concluidas=tarefas_concluidas)  # Renderiza o template de tarefas concluídas, passando as tarefas obtidas.
+
+@bp.route('/<int:id_lista>/total_pendentes')
+@login_required
+def total_pendentes(id_lista):
+    cursor = get_cursor()
+    cursor.execute("SELECT contar_tarefas_pendentes(%s)", (id_lista,))
+    total = cursor.fetchone()[0]
+    return render_template('list/total_pendentes.html', total=total, id_lista=id_lista)
+
+@bp.route('/<int:id_lista>/concluir_todas', methods=['POST'])
+@login_required
+def concluir_todas(id_lista):
+    db = get_db()
+    cursor = get_cursor()
+    cursor.execute("CALL concluir_todas_tarefas(%s)", (id_lista,))
+    db.commit()
+    flash('Todas as tarefas da lista foram concluídas!')
+    return redirect(url_for('list.tarefas', id_lista=id_lista))
 
 def get_lista(id_lista, check_author=True):  # Obtém uma lista de tarefas específica pelo ID, com a opção de verificar se o usuário é o autor da lista.
-    
+
+
+
     cursor = get_cursor()
 
     # lista = get_db().execute(

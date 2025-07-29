@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Tarefas Concluídas</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <h1>Tarefas Concluídas</h1>
+    {% if tarefas %}
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Descrição</th>
+                    <th>Data de Conclusão</th>
+                    <th>Lista</th>
+                    <th>Usuário</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for tarefa in tarefas %}
+                <tr>
+                    <td>{{ tarefa.id_tarefa }}</td>
+                    <td>{{ tarefa.descricao }}</td>
+                    <td>{{ tarefa.data_conclusao }}</td>
+                    <td>{{ tarefa.nome_lista }}</td>
+                    <td>{{ tarefa.nome_usuario }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>Nenhuma tarefa concluída encontrada.</p>
+    {% endif %}
+    <a href="{{ url_for('list.tarefas', id_lista=g.user['Id_Usuario']) }}">Voltar para Tarefas</a>
+</body>

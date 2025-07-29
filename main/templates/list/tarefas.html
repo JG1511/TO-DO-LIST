@@ -6,6 +6,13 @@
 {% endblock %}
 
 {% block content %}
+
+  <form action="{{ url_for('list.concluir_todas', id_lista=request.view_args['id_lista']) }}" method="post" style="margin-bottom: 20px;">
+      <button type="submit" onclick="return confirm('Tem certeza que deseja concluir todas as tarefas desta lista?');">
+          Concluir todas as tarefas
+      </button>
+  </form>
+
   {% for tarefa in tarefas %}
     <article>
       <h2>{{ tarefa['nome'] }}</h2>
